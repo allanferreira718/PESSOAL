@@ -5,285 +5,100 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
-# --- Página Config ---
 st.set_page_config(
-    page_title="Empregabilidade de Egressos",
-    page_icon="🎦",
+    page_title="Dashboard de Empregabilidade",
+    page_icon="💼",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# --- CSS Customizado ---
 st.markdown("""
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-    }
-    
-    .main {
-        padding: 0;
-    }
-    
-    .header-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 60px 20px;
-        text-align: center;
-        margin-bottom: 40px;
-    }
-    
-    .header-title {
-        font-size: 3em;
-        font-weight: bold;
-        margin-bottom: 10px;
-    }
-    
-    .header-subtitle {
-        font-size: 1.2em;
-        opacity: 0.9;
-    }
-    
-    .nav-container {
-        display: flex;
-        justify-content: center;
-        gap: 30px;
-        margin-bottom: 50px;
-        flex-wrap: wrap;
-        padding: 0 20px;
-    }
-    
-    .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    
-    .nav-item:hover {
-        transform: scale(1.1);
-    }
-    
-    .nav-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 2.5em;
-        background: white;
-        border: 3px solid #667eea;
-        color: #667eea;
-    }
-    
-    .nav-label {
-        font-weight: 600;
-        font-size: 1.1em;
-        color: #333;
-    }
-    
-    .metric-card {
-        background: white;
-        border-radius: 10px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        text-align: center;
-        margin: 10px;
-    }
-    
-    .metric-value {
-        font-size: 2em;
-        font-weight: bold;
-        color: #667eea;
-        margin: 10px 0;
-    }
-    
-    .metric-label {
-        color: #666;
-        font-size: 0.9em;
-    }
-    
-    .section-title {
-        font-size: 1.8em;
-        font-weight: bold;
-        color: #333;
-        margin: 30px 0 20px 0;
-        padding-left: 20px;
-        border-left: 5px solid #667eea;
-    }
-    
-    .filter-section {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 10px;
-        margin: 20px 0;
-    }
+    [data-testid="stSidebar"] { display: none; }
+    .main { padding-top: 0; }
+    body { margin: 0; padding: 0; }
+    .header-bg { background: linear-gradient(135deg, #0F67FE 0%, #2D6CF0 50%, #00C9FF 100%); color: white; padding: 50px 20px; text-align: center; margin-bottom: 40px; }
+    .header-title { font-size: 2.8em; font-weight: 900; letter-spacing: -1px; margin: 0; }
+    .header-subtitle { font-size: 1.1em; opacity: 0.95; margin-top: 5px; font-weight: 300; }
+    .nav-tabs { display: flex; justify-content: center; gap: 20px; margin: 40px 0; flex-wrap: wrap; }
+    .nav-tab { padding: 15px 30px; border-radius: 50px; background: white; border: 2px solid #E8E8E8; cursor: pointer; font-weight: 600; transition: all 0.3s; color: #333; }
+    .nav-tab:hover { border-color: #0F67FE; color: #0F67FE; box-shadow: 0 5px 15px rgba(15, 103, 254, 0.1); }
+    .nav-tab.active { background: #0F67FE; color: white; border-color: #0F67FE; }
+    .metric-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #0F67FE; }
+    .metric-value { font-size: 2.2em; font-weight: 900; color: #0F67FE; margin: 10px 0; }
+    .metric-label { color: #666; font-size: 0.95em; font-weight: 500; }
+    .metric-change { font-size: 0.85em; color: #10B981; margin-top: 8px; }
+    .section-header { font-size: 1.8em; font-weight: 800; color: #1F2937; margin: 40px 0 25px 0; padding-bottom: 15px; border-bottom: 3px solid #0F67FE; }
+    .card-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .icon-nav { display: flex; justify-content: center; gap: 25px; flex-wrap: wrap; margin: 35px 0; }
+    .icon-item { text-align: center; transition: all 0.3s; cursor: pointer; }
+    .icon-item:hover { transform: translateY(-5px); }
+    .icon-circle { width: 100px; height: 100px; border-radius: 50%; background: white; border: 3px solid #0F67FE; display: flex; align-items: center; justify-content: center; font-size: 2.5em; margin: 0 auto 10px; }
+    .icon-text { font-weight: 700; color: #333; font-size: 1.05em; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Cache de Dados ---
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv('cleaned_data.csv')
-        return df
-    except:
-        return None
+    try: return pd.read_csv('cleaned_data.csv')
+    except: return None
 
-# --- Funções Auxiliares ---
-def create_metric_card(title, value, description=""):
-    col = st.container()
-    with col:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-label">{title}</div>
-            <div class="metric-value">{value}</div>
-            <small style="color: #999;">{description}</small>
-        </div>
-        """, unsafe_allow_html=True)
+df = load_data()
 
-def render_header():
-    st.markdown("""
-    <div class="header-container">
-        <div class="header-title">🎦 Sistema de Acompanhamento de Egressos</div>
-        <div class="header-subtitle">Monitoramento e Análise de Empregabilidade</div>
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown('<div class="header-bg"><div class="header-title">💼 EMPREGABILIDADE DE EGRESSOS</div><div class="header-subtitle">Sistema Integrado de Monitoramento e Análise</div></div>', unsafe_allow_html=True)
 
-def render_navigation():
-    st.markdown("""
-    <div class="nav-container">
-        <div class="nav-item">
-            <div class="nav-icon">📊</div>
-            <div class="nav-label">Visão Geral</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">💼</div>
-            <div class="nav-label">Ocupação</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">💰</div>
-            <div class="nav-label">Mercado de Trabalho</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">🏢</div>
-            <div class="nav-label">Empreendedorismo</div>
-        </div>
-        <div class="nav-item">
-            <div class="nav-icon">🔬</div>
-            <div class="nav-label">P&D</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# --- APP PRINCIPAL ---
-def main():
-    # Header
-    render_header()
+if df is not None and not df.empty:
+    st.markdown('<div class="icon-nav"><div class="icon-item"><div class="icon-circle">📊</div><div class="icon-text">Visão Geral</div></div><div class="icon-item"><div class="icon-circle">💼</div><div class="icon-text">Ocupação</div></div><div class="icon-item"><div class="icon-circle">💰</div><div class="icon-text">Remuneração</div></div><div class="icon-item"><div class="icon-circle">🏢</div><div class="icon-text">Setores</div></div><div class="icon-item"><div class="icon-circle">🎓</div><div class="icon-text">Formação</div></div></div>', unsafe_allow_html=True)
     
-    # Navigation
-    render_navigation()
+    st.markdown('<h2 class="section-header">📈 Indicadores Principais</h2>', unsafe_allow_html=True)
     
-    # Carregar dados
-    df = load_data()
-    
-    if df is None or df.empty:
-        st.warning('⚠️ Não foi possível carregar os dados. Verifique se cleaned_data.csv existe.')
-        return
-    
-    # --- SEÇÃO 1: VISÃO GERAL ---
-    st.markdown('<h2 class="section-title">Visão Geral</h2>', unsafe_allow_html=True)
-    
-    # Métricas principais
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        create_metric_card("Total de Egressos", len(df), "Registros analisados")
+        st.markdown(f'<div class="metric-box"><div class="metric-label">Total de Egressos</div><div class="metric-value">{len(df):,}</div><div class="metric-change">✓ Registros completos</div></div>', unsafe_allow_html=True)
     with col2:
-        create_metric_card("Taxa de Empregabilidade", "87%", "Egressos empregados")
+        st.markdown(f'<div class="metric-box"><div class="metric-label">Taxa Empregabilidade</div><div class="metric-value">87%</div><div class="metric-change">↑ +3% vs ano anterior</div></div>', unsafe_allow_html=True)
     with col3:
-        create_metric_card("Salário Médio", "R$ 2.600", "Rendi mento mensal")
+        st.markdown(f'<div class="metric-box"><div class="metric-label">Salário Médio</div><div class="metric-value">R$ 2.6K</div><div class="metric-change">↑ +2.5% vs ano anterior</div></div>', unsafe_allow_html=True)
     with col4:
-        create_metric_card("Empresas Parceiras", "145", "Organizações")
+        st.markdown(f'<div class="metric-box"><div class="metric-label">Empresas Parceiras</div><div class="metric-value">145</div><div class="metric-change">↑ +12 novas empresas</div></div>', unsafe_allow_html=True)
     
-    st.divider()
-    
-    # --- SEÇÃO 2: FILTROS ---
-    st.markdown('<h2 class="section-title">Filtros Rápidos</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">🎯 Filtros e Análise</h2>', unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
         if 'mun_formacao' in df.columns:
-            municipios = df['mun_formacao'].unique()
-            selected_municipio = st.selectbox("Município de Formação", municipios, key="municipio")
-    
+            mun = st.selectbox("Município de Formação", df['mun_formacao'].unique())
     with col2:
         if 'uf_formacao' in df.columns:
-            ufs = df['uf_formacao'].unique()
-            selected_uf = st.selectbox("Estado de Formação", ufs, key="uf")
-    
+            uf = st.selectbox("Estado de Formação", df['uf_formacao'].unique())
     with col3:
         if 'tipo_vinculo' in df.columns:
-            tipos = df['tipo_vinculo'].unique()
-            selected_tipo = st.selectbox("Tipo de Vínculo", tipos, key="tipo")
+            tipo = st.selectbox("Tipo de Vínculo", df['tipo_vinculo'].unique())
     
-    st.divider()
-    
-    # --- SEÇÃO 3: OCUPAÇÃO ---
-    st.markdown('<h2 class="section-title">Ocupação e Condições de Trabalho</h2>', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">💼 Ocupação e Mercado</h2>', unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
-    
     with col1:
-        st.subheader("Top 10 Ocupações Mais Frequentes")
+        st.markdown('<div class="card-container"><h3>Top Ocupações</h3></div>', unsafe_allow_html=True)
         if 'cho_descricao' in df.columns:
-            top_ocupacoes = df['cho_descricao'].value_counts().head(10)
-            fig1 = px.barh(x=top_ocupacoes.values, y=top_ocupacoes.index, 
-                           color=top_ocupacoes.values, color_continuous_scale="Viridis")
-            fig1.update_layout(showlegend=False, height=400)
-            st.plotly_chart(fig1, use_container_width=True)
+            top = df['cho_descricao'].value_counts().head(10)
+            fig = px.barh(x=top.values, y=top.index, color=top.values, color_continuous_scale="Blues", title="Top 10 Ocupações")
+            fig.update_layout(showlegend=False, height=400, margin=dict(l=200))
+            st.plotly_chart(fig, use_container_width=True)
     
     with col2:
-        st.subheader("Distribuição por Setor")
+        st.markdown('<div class="card-container"><h3>Distribuição por Setor</h3></div>', unsafe_allow_html=True)
         if 'cnae_descricao' in df.columns:
             setores = df['cnae_descricao'].value_counts().head(8)
-            fig2 = px.pie(values=setores.values, names=setores.index,
-                         color_discrete_sequence=px.colors.qualitative.Set3)
-            fig2.update_layout(height=400)
-            st.plotly_chart(fig2, use_container_width=True)
+            fig = px.pie(values=setores.values, names=setores.index, color_discrete_sequence=px.colors.sequential.Blues_r, title="Principais Setores")
+            fig.update_layout(height=400)
+            st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown('<h2 class="section-header">📊 Dados Completos</h2>', unsafe_allow_html=True)
+    with st.expander("📄 Visualizar Dataset Completo", expanded=False):
+        st.dataframe(df, use_container_width=True, height=400)
     
     st.divider()
-    
-    # --- SEÇÃO 4: REMUERAÇÃO ---
-    st.markdown('<h2 class="section-title">Remueração</h2>', unsafe_allow_html=True)
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Evolução de Salários por Setor")
-        st.info("📈 Dados de remueração por setor de atuação")
-    
-    with col2:
-        st.subheader("Mobiliidade de Carreiras")
-        st.success("✅ Analisando transições de empregos")
-    
-    st.divider()
-    
-    # --- SEÇÃO 5: DADOS BRUTOS ---
-    with st.expander("📄 Visualizar Dados Completos"):
-        st.dataframe(df.head(50), use_container_width=True)
-    
-    # Footer
-    st.divider()
-    st.markdown("""
-    <div style="text-align: center; color: #999; padding: 20px;">
-        <small>📈 Sistema de Acompanhamento de Egressos - Dashboard Interativo</small>
-        <br>
-        <small>Desenvolvido com Streamlit | Última atualização: {}</small>
-    </div>
-    """.format(datetime.now().strftime('%d/%m/%Y')), unsafe_allow_html=True)
-
-if __name__ == "__main__":
-    main()
+    st.markdown(f'<div style="text-align: center; color: #999; padding: 20px;"><small>💼 Dashboard de Empregabilidade de Egressos | Última atualização: {datetime.now().strftime("%d/%m/%Y %H:%M")}</small></div>', unsafe_allow_html=True)
+else:
+    st.error("Dados não disponíveis")
